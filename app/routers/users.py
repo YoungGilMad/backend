@@ -8,6 +8,7 @@ from app import models, schemas
 from app.core.utils import hash_password, verify_password
 from app.core.security import create_access_token
 
+
 router = APIRouter(
     prefix="/users",
     tags=["Users"]
@@ -44,9 +45,14 @@ def register_user(user_create: schemas.UserCreate, db: Session = Depends(get_db)
     db.refresh(new_user)
     return new_user
 
-@router.post("/login")
-def login(email: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == email).first()
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+@router.post("/login", response_model=TokenResponse)  # 혹은 Dict
+def login(request_data: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == request_data.email).first()
+    ...
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
     # 비밀번호 검증

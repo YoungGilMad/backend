@@ -61,13 +61,15 @@ class Quest(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     todo = Column(String(200))
     memo = Column(String)
+    tag = Column(String)  # JSON이나 CSV 등으로 저장하려면 별도 처리
+    days = Column(String) # 마찬가지로 JSON 배열로 저장한다면 Column(JSON) 고려
     finish = Column(Boolean, default=False)
     quest_type = Column(String(50))  # 'ai', 'self', etc.
     start_time = Column(DateTime)
     stop_time = Column(DateTime)
     finish_time = Column(DateTime)
-    # progress_time, complete_time, 등등 필요 컬럼은 추가로
-    # user = relationship("User", back_populates="quests")
+    progress_time = Column(Integer)  # 필요하다면
+    complete_time = Column(Integer)  # 필요하다면
 
 class Friend(Base):
     __tablename__ = "friends"
