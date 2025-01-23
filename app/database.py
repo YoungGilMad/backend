@@ -1,13 +1,38 @@
-# app/database.py
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-from app.database import Base  # (이건 main.py 쪽에서 Base를 import 해오면 될 수도 있음)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.engine import Engine
+from .config import get_settings
 
-load_dotenv()
+settings = get_settings()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL, echo=True)  # echo=True -> SQL 로그 출력
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    echo=True,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=5,
+    max_overflow=10,
+    future=True
+)
+
+# 비동기 세션
+AsyncSessionLocal = sessionmaker(
+    engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False
+)
+
+# 동기 세션 - 기존 코드와의 호환성을 위해 추가
+SessionLocal = AsyncSessionLocal
+
+Base = declarative_base()
+
+# DB 세션 의존성
+async def get_db():
+    db = AsyncSessionLocal()
+    try:
+        yield db
+    finally:
+        await db.close()

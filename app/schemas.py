@@ -1,42 +1,56 @@
-# app/schemas.py
-
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
 
-# 1) User
 class UserBase(BaseModel):
-    name: str
-    phone_number: Optional[str] = None
     email: EmailStr
-    profile_img: Optional[str] = None
+    nickname: str
 
 class UserCreate(UserBase):
     password: str
 
-class UserResponse(UserBase):
+class User(UserBase):
     id: int
-    join_date: datetime
-    update_date: datetime
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    is_active: bool = True
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-# 2) Hero
+class UserInDB(User):
+    hashed_password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+# Hero 관련 스키마 추가
 class HeroBase(BaseModel):
-    hero_level: int
-    coin: int
-    avatar_id: Optional[int] = None
-    background_id: Optional[int] = None
+    name: str
+    level: int = 1
+    exp: int = 0
+    hp: int = 100
+    mp: int = 100
+    strength: int = 10
+    dexterity: int = 10
+    intelligence: int = 10
+    wisdom: int = 10
+
+    class Config:
+        from_attributes = True
 
 class HeroCreate(HeroBase):
-    pass
-
-class HeroResponse(HeroBase):
-    id: int
     user_id: int
 
-    class Config:
-        orm_mode = True
+class Hero(HeroBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
-# 3) 기타 필요한 스키마들 (Item, Quest 등)도 예시
+    class Config:
+        from_attributes = True

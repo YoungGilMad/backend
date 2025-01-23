@@ -1,84 +1,58 @@
-# app/routers/users.py
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
-from app.database import SessionLocal
-from app import models, schemas
-from app.core.utils import hash_password, verify_password
-from app.core.security import create_access_token
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from ..database import get_db
+from .. import models, schemas
+from ..utils import auth
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users"]
+    tags=["users"]
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# 회원가입 요청 모델
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    nickname: str
+    
+    class Config:
+        from_attributes = True
 
-@router.post("/register", response_model=schemas.UserResponse)
-def register_user(user_create: schemas.UserCreate, db: Session = Depends(get_db)):
-    # 이메일 중복 체크
-    existing_user = db.query(models.User).filter(models.User.email == user_create.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered."
-        )
-    # 비밀번호 해싱
-    hashed_pw = hash_password(user_create.password)
-
-    new_user = models.User(
-        name=user_create.name,
-        phone_number=user_create.phone_number,
-        email=user_create.email,
-        password=hashed_pw,
-        profile_img=user_create.profile_img
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
+# 로그인 요청 모델
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    
+    class Config:
+        from_attributes = True
 
-@router.post("/login", response_model=TokenResponse)  # 혹은 Dict
-def login(request_data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == request_data.email).first()
-    ...
+# 회원가입
+@router.post("/", response_model=schemas.User)
+async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    db_user = await auth.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    return await auth.create_user(db=db, user=user)
+
+# 로그인
+@router.post("/login")
+async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    user = await auth.authenticate_user(db, login_data.email, login_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-    # 비밀번호 검증
-    if not verify_password(password, user.password):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-    # JWT 토큰 발급
-    access_token = create_access_token({"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer", "user_id": user.id}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = auth.create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/{user_id}", response_model=schemas.UserResponse)
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-@router.delete("/remove/{user_id}")
-def remove_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return {"message": f"User {user_id} removed."}
-
-@router.get("/alarm/{user_id}")
-def get_alarm(user_id: int):
-    # 예시: 알림 기능 (DB에 알림 테이블이 있다면, 해당 데이터를 조회하는 형태)
-    return {"user_id": user_id, "alarms": ["퀘스트 완료 알림", "친구가 나를 깨웠음"]}
+# 현재 사용자 정보 조회
+@router.get("/me", response_model=schemas.User)
+async def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+    return current_user

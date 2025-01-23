@@ -5,8 +5,17 @@ from app.database import engine, Base
 from app.routers import users, hero, item, quest, social, settings
 from fastapi.middleware.cors import CORSMiddleware
 
-# DB 초기화 (테이블 생성)
-Base.metadata.create_all(bind=engine)
+app = FastAPI()
+
+# 비동기 데이터베이스 초기화
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+# 애플리케이션 시작 시 DB 초기화
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
 
 app = FastAPI(
     title="My MiniHome Backend",
