@@ -1,0 +1,38 @@
+services:
+  frontend:
+    container_name: behero-frontend
+    image: jongc0214/behero-frontend:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - API_URL=http://localhost:8080
+    working_dir: /app
+    command: ["sh", "-c", "cd / && flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0"]
+
+  backend:
+    container_name: behero-backend
+    image: jongc0214/behero-backend:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    environment:
+      - DATABASE_URL=mysql://root:rootpassword@mysql:3306/behero
+    working_dir: /
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+  mysql:
+    container_name: behero-mysql
+    image: jongc0214/behero-mysql:latest
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=behero
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:
