@@ -1,0 +1,10 @@
+services:
+  frontend:
+    image: jongc0214/behero-frontend:${TAG}
+    ports:
+      - "3000:3000"
+
+  backend:
+    image: lehyno/behero-backend:${TAG}
+    ports:
+      - "8080:8080"

@@ -13,7 +13,7 @@ services:
 
   backend:
     container_name: behero-backend
-    image: jongc0214/behero-backend:latest
+    image: lehyno/behero-backend:latest
     ports:
       - "8080:8080"
     depends_on:
