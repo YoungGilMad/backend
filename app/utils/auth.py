@@ -39,8 +39,8 @@ async def create_user(db: AsyncSession, user_data) -> models.User:
     hashed_password = get_password_hash(user_data.password)
     db_user = models.User(
         email=user_data.email,
-        hashed_password=hashed_password,
-        nickname=user_data.nickname
+        password=password,  # hashed_password를 password로 변경
+        name=user_data.nickname    # nickname을 name으로 변경
     )
     db.add(db_user)
     await db.commit()
@@ -50,7 +50,7 @@ async def create_user(db: AsyncSession, user_data) -> models.User:
 # 사용자 인증
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[models.User]:
     user = await get_user_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         return None
     return user
 

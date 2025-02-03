@@ -12,7 +12,7 @@ class User(Base):
     phone_number = Column(String(20))
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255))
-    profile_img = Column(String)
+    profile_img = Column(String(255))
     join_date = Column(DateTime, server_default=func.now())
     update_date = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -35,8 +35,8 @@ class Story(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    contents = Column(String)
-    img = Column(String)  # url
+    contents = Column(String(1000))
+    img = Column(String(255))  # url
     create_at = Column(DateTime, server_default=func.now())
 
 class Item(Base):
@@ -60,9 +60,9 @@ class Quest(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     todo = Column(String(200))
-    memo = Column(String)
-    tag = Column(String)  # JSON이나 CSV 등으로 저장하려면 별도 처리
-    days = Column(String) # 마찬가지로 JSON 배열로 저장한다면 Column(JSON) 고려
+    memo = Column(String(1000))
+    tag = Column(String(100))  # JSON이나 CSV 등으로 저장하려면 별도 처리
+    days = Column(String(100)) # 마찬가지로 JSON 배열로 저장한다면 Column(JSON) 고려
     finish = Column(Boolean, default=False)
     quest_type = Column(String(50))  # 'ai', 'self', etc.
     start_time = Column(DateTime)
@@ -84,7 +84,7 @@ class Group(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100))
-    description = Column(String)
+    description = Column(String(100))
     owner_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, server_default=func.now())
 

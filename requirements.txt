@@ -6,3 +6,5 @@ passlib==1.7.4
 PyJWT==2.6.0
 pymysql==1.0.3
 sqlalchemy==1.4.46  # 혹은 2.x 버전, 코드에 맞춰 설치
+python-multipart
+aiofiles

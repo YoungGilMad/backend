@@ -6,8 +6,10 @@ class UserBase(BaseModel):
     email: EmailStr
     nickname: str
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: str
     password: str
+    nickname: str
 
 class User(UserBase):
     id: int
