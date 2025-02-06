@@ -7,6 +7,7 @@ from typing import Optional
 from ..database import get_db
 from .. import models, schemas
 from ..utils import auth
+from sqlalchemy.orm import Session 
 
 router = APIRouter(
     prefix="/users",
@@ -117,3 +118,45 @@ async def get_profile_image(
         )
     
     return {"profile_img": current_user.profile_img}
+
+# user 이름 조회 엔드포인트
+@router.get("/me/user-name")
+async def get_user_name(
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    현재 로그인된 사용자의 이름을 가져옵니다.
+    """
+    if not current_user.name:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User name not found"
+        )
+    
+    print(current_user.name)
+    
+    return {"name": current_user.name}
+
+@router.post("/me/user-name")
+async def update_user_name(
+    name: str,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    현재 로그인된 사용자의 이름을 업데이트합니다.
+    """
+    if not name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Name cannot be empty"
+        )
+    
+    current_user.name = name
+    db.add(current_user)  # 변경사항을 스테이징
+    await db.commit()          # 변경사항을 커밋
+    await db.refresh(current_user)  # DB에서 최신 데이터로 리프레시
+
+    print(current_user.name)
+    
+    return {"name": current_user.name}

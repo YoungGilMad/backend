@@ -12,7 +12,7 @@ app = FastAPI(
     title="My MiniHome Backend",
     description="Flutter 연동용 백엔드 API",
     version="1.0.0"
-)
+) # app '한 번'만 정의
 
 # 비동기 데이터베이스 초기화
 async def init_db():
