@@ -35,12 +35,15 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[models.Use
     return result.scalars().first()
 
 # 사용자 생성
-async def create_user(db: AsyncSession, user_data) -> models.User:
-    hashed_password = get_password_hash(user_data.password)
+async def create_user(db: AsyncSession, user: models.User) -> models.User:
+    hashed_password = get_password_hash(user.password)
     db_user = models.User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        nickname=user_data.nickname
+        email=user.email,
+        password=hashed_password,  # 수정: hashed_password를 password 필드에 저장
+        name=user.name,
+        phone_number=user.phone_number,
+        join_date=datetime.utcnow(),
+        update_date=datetime.utcnow()
     )
     db.add(db_user)
     await db.commit()
@@ -50,7 +53,7 @@ async def create_user(db: AsyncSession, user_data) -> models.User:
 # 사용자 인증
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[models.User]:
     user = await get_user_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         return None
     return user
 
