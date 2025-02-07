@@ -1,0 +1,38 @@
+# Python 관련
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# 환경 설정 관련
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE 관련
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 기타
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose*
+README.md
