@@ -4,53 +4,62 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     email: EmailStr
-    nickname: str
+    name: str
 
 class UserCreate(UserBase):
     password: str
+    phone_number: Optional[str] = None
 
 class User(UserBase):
     id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    is_active: bool = True
+    phone_number: Optional[str] = None
+    profile_img: Optional[str] = None
+    join_date: datetime
+    update_date: datetime
 
     class Config:
-        from_attributes = True
-
-class UserInDB(User):
-    hashed_password: str
+        from_attributes = True  # SQLAlchemy 모델과의 호환성을 위해 필요
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: User
+
+    class Config:
+        from_attributes = True
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    email: Optional[str] = None
+    user_id: Optional[int] = None
 
-# Hero 관련 스키마 추가
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: User
+
+    class Config:
+        from_attributes = True
+
 class HeroBase(BaseModel):
-    name: str
-    level: int = 1
-    exp: int = 0
-    hp: int = 100
-    mp: int = 100
-    strength: int = 10
-    dexterity: int = 10
-    intelligence: int = 10
-    wisdom: int = 10
-
+    hero_level: int = 1
+    coin: int = 0
+    avatar_id: Optional[int] = None
+    background_id: Optional[int] = None
+    
     class Config:
         from_attributes = True
 
 class HeroCreate(HeroBase):
     user_id: int
 
+class HeroUpdate(HeroBase):
+    pass
+
 class Hero(HeroBase):
     id: int
     user_id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
+    tag: Optional[List[str]] = None
+    did_info: Optional[List[dict]] = None
+    
     class Config:
         from_attributes = True
