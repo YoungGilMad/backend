@@ -29,8 +29,17 @@ class LoginRequest(BaseModel):
     class Config:
         from_attributes = True
 
+# 로그인 응답 모델
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: schemas.User
+
+    class Config:
+        from_attributes = True
+
 # 회원가입
-@router.post("/register", response_model=schemas.User)  # 경로를 /register로 명시적 변경
+@router.post("/register", response_model=schemas.User)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     db_user = await auth.get_user_by_email(db, email=user.email)
     if db_user:
@@ -41,7 +50,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return await auth.create_user(db=db, user=user)
 
 # 로그인
-@router.post("/login")
+@router.post("/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await auth.authenticate_user(db, login_data.email, login_data.password)
     if not user:
@@ -50,8 +59,17 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = auth.create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    # 사용자 ID를 포함하여 토큰 생성
+    access_token = auth.create_access_token(
+        data={"sub": user.email, "user_id": user.id}
+    )
+    
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=user
+    )
 
 # 현재 사용자 정보 조회
 @router.get("/me", response_model=schemas.User)
