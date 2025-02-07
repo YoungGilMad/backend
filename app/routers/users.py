@@ -15,7 +15,8 @@ router = APIRouter(
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    nickname: str
+    name: str
+    phone_number: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -29,7 +30,7 @@ class LoginRequest(BaseModel):
         from_attributes = True
 
 # 회원가입
-@router.post("/", response_model=schemas.User)
+@router.post("/register", response_model=schemas.User)  # 경로를 /register로 명시적 변경
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     db_user = await auth.get_user_by_email(db, email=user.email)
     if db_user:
