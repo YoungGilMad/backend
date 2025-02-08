@@ -6,9 +6,11 @@ class UserBase(BaseModel):
     email: EmailStr
     name: str
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: str
     password: str
     phone_number: Optional[str] = None
+    nickname: str
 
 class User(UserBase):
     id: int

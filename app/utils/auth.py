@@ -38,12 +38,15 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[models.Use
 async def create_user(db: AsyncSession, user: models.User) -> models.User:
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
-        email=user.email,
-        password=hashed_password,  # 수정: hashed_password를 password 필드에 저장
-        name=user.name,
+        email=user_data.email,
+        password=password,  # hashed_password를 password로 변경
+        name=user_data.nickname    # nickname을 name으로 변경
         phone_number=user.phone_number,
         join_date=datetime.utcnow(),
         update_date=datetime.utcnow()
+        # email=user_data.email,
+        # password=password,  # hashed_password를 password로 변경
+        # name=user_data.nickname    # nickname을 name으로 변경
     )
     db.add(db_user)
     await db.commit()

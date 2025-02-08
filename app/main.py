@@ -4,11 +4,19 @@ from fastapi import FastAPI
 from app.database import engine, Base
 from app.routers import users, hero, item, quest, social, settings
 from fastapi.middleware.cors import CORSMiddleware
+from app import models
+from fastapi.staticfiles import StaticFiles
+import os
 
-app = FastAPI()
+app = FastAPI(
+    title="My MiniHome Backend",
+    description="Flutter 연동용 백엔드 API",
+    version="1.0.0"
+) # app '한 번'만 정의
 
 # 비동기 데이터베이스 초기화
 async def init_db():
+    print(22)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -16,12 +24,6 @@ async def init_db():
 @app.on_event("startup")
 async def startup_event():
     await init_db()
-
-app = FastAPI(
-    title="My MiniHome Backend",
-    description="Flutter 연동용 백엔드 API",
-    version="1.0.0"
-)
 
 # CORS (Flutter 등에서 접근 시 필요할 수 있음)
 app.add_middleware(
@@ -44,3 +46,10 @@ app.include_router(settings.router)
 @app.get("/")
 def root():
     return {"message": "Hello, FastAPI World!"}
+
+# 디렉토리 생성 (프로필 처리용)
+os.makedirs("uploads/profile_images", exist_ok=True)
+
+# mount
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
