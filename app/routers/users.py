@@ -9,6 +9,8 @@ from ..database import get_db
 from .. import models, schemas
 from ..utils import auth
 from sqlalchemy.orm import Session 
+from typing import List, Optional
+
 
 router = APIRouter(
     prefix="/users",
@@ -66,13 +68,6 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         )
     return await auth.create_user(db=db, user_data=user)
 
-<<<<<<< HEAD
-# 로그인
-@router.post("/login", response_model=LoginResponse)
-async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
-    # 사용자 인증
-    user = await auth.authenticate_user(db, login_data.email, login_data.password)
-=======
 # login: OAuth2 사용하도록 수정
 @router.post("/login")
 async def login(
@@ -80,7 +75,6 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     user = await authenticate_user(db, form_data.username, form_data.password)
->>>>>>> origin/dev
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -88,39 +82,14 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-<<<<<<< HEAD
-    # 토큰 생성
-    access_token = auth.create_access_token(
-        data={"sub": user.email, "user_id": user.id}
-    )
-    
-    # UserResponse 모델로 변환하여 반환
-    user_response = UserResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        phone_number=user.phone_number,
-        profile_img=user.profile_img,
-        join_date=user.join_date,
-        update_date=user.update_date
-    )
-    
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user_response
-    )
-=======
+
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
->>>>>>> origin/dev
 
 # 현재 사용자 정보 조회
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
-<<<<<<< HEAD
-    return UserResponse.model_validate(current_user)
-=======
+
     return current_user
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -219,4 +188,3 @@ async def update_user_name(
     print(current_user.name)
     
     return {"name": current_user.name}
->>>>>>> origin/dev

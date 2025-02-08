@@ -40,7 +40,7 @@ async def create_user(db: AsyncSession, user: models.User) -> models.User:
     db_user = models.User(
         email=user_data.email,
         password=password,  # hashed_password를 password로 변경
-        name=user_data.nickname    # nickname을 name으로 변경
+        name=user_data.nickname,    # nickname을 name으로 변경
         phone_number=user.phone_number,
         join_date=datetime.utcnow(),
         update_date=datetime.utcnow()
