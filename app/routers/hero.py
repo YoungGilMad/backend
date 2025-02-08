@@ -72,3 +72,5 @@ def reward_hero(user_id: int, reward_coin: int = 10, db: Session = Depends(get_d
     db.commit()
     db.refresh(hero)
     return {"message": f"Reward given. Current coin: {hero.coin}"}
+
+    
