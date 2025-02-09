@@ -6,6 +6,7 @@ from datetime import datetime
 from ..database import get_db
 from .. import models, schemas
 from ..utils import auth
+from sqlalchemy import select
 
 router = APIRouter(
     prefix="/users",
@@ -39,6 +40,7 @@ class UserResponse(BaseModel):
     profile_img: Optional[str]
     join_date: datetime
     update_date: datetime
+    hero_level: int = 1  # 추가: 기본값 1로 설정
 
     class Config:
         from_attributes = True
@@ -80,6 +82,13 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
         data={"sub": user.email, "user_id": user.id}
     )
     
+    # 사용자의 hero 정보 조회 - 수정된 부분
+    result = await db.execute(
+        select(models.Hero).filter(models.Hero.user_id == user.id)
+    )
+    hero = result.scalar_one_or_none()
+    hero_level = hero.hero_level if hero else 1
+    
     # UserResponse 모델로 변환하여 반환
     user_response = UserResponse(
         id=user.id,
@@ -88,7 +97,8 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
         phone_number=user.phone_number,
         profile_img=user.profile_img,
         join_date=user.join_date,
-        update_date=user.update_date
+        update_date=user.update_date,
+        hero_level=hero_level
     )
     
     return LoginResponse(
