@@ -82,30 +82,30 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
         data={"sub": user.email, "user_id": user.id}
     )
     
-    # 사용자의 hero 정보 조회 - 수정된 부분
+    # 사용자의 hero 정보 조회
     result = await db.execute(
         select(models.Hero).filter(models.Hero.user_id == user.id)
     )
     hero = result.scalar_one_or_none()
-    hero_level = hero.hero_level if hero else 1
     
-    # UserResponse 모델로 변환하여 반환
-    user_response = UserResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        phone_number=user.phone_number,
-        profile_img=user.profile_img,
-        join_date=user.join_date,
-        update_date=user.update_date,
-        hero_level=hero_level
-    )
+    # 응답 데이터 구성
+    response_data = {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "phone_number": user.phone_number,
+            "profile_img": user.profile_img,
+            "join_date": user.join_date.isoformat(),
+            "update_date": user.update_date.isoformat(),
+            "hero_level": hero.hero_level if hero else 1,
+            "nickname": user.name  # 프론트엔드 UserModel이 기대하는 필드
+        }
+    }
     
-    return LoginResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=user_response
-    )
+    return response_data
 
 # 현재 사용자 정보 조회
 @router.get("/me", response_model=UserResponse)
