@@ -117,6 +117,7 @@ style: 코드 포맷팅
 refactor: 코드 리팩토링
 test: 테스트 코드
 chore: 기타 변경사항
+develop: 개발 사항
 ```
 
 ## 라이센스
