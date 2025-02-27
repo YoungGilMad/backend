@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from app.database import engine, Base
-from app.routers import users, hero, item, quest, social, settings
+from app.routers import users, hero, item, quest, social, settings, statistics  # statistics 추가
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -39,6 +39,7 @@ app.include_router(item.router)
 app.include_router(quest.router)
 app.include_router(social.router)
 app.include_router(settings.router)
+app.include_router(statistics.router)  # statistics 라우터 등록
 
 # 헬스 체크 용도
 @app.get("/")
