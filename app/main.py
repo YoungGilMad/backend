@@ -26,7 +26,7 @@ app = FastAPI(
 # CORS (Flutter 등에서 접근 시 필요할 수 있음)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 실제 배포 시에는 도메인을 구체적으로 넣는 것이 안전
+    allow_origins=["http://behero"],  # 실제 배포 시에는 도메인을 구체적으로 넣는 것이 안전
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
