@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS quests (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     title VARCHAR(30) NOT NULL,
-    description VERCHAR(200) NOT NULL,
+    description VARCHAR(200) NOT NULL,
     tag JSON,  -- 태그 정보를 JSON으로 저장
     days JSON,  -- 요일 정보를 JSON으로 저장
     progress_time INT DEFAULT 0,
