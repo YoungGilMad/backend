@@ -6,6 +6,7 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 from ..utils.auth import get_current_user
+import json
 
 router = APIRouter(
     prefix="/hero/statistics",
@@ -70,14 +71,14 @@ async def get_user_statistics(
     avg_daily_activity = activity_result.scalar_one() or 0
     avg_daily_activity_hours = round(avg_daily_activity / 3600, 1)  # 초 단위를 시간으로 변환
     
-    # 연속 달성 일수 계산 (예시 데이터)
-    streak_days = 7
+    # 연속 달성 일수 계산
+    streak_days = await _calculate_streak_days(db, user_id)
     
-    # 월간 목표 달성률 (예시 데이터)
-    monthly_goal_percentage = 85
+    # 월간 목표 달성률 계산
+    monthly_goal_percentage = await _calculate_monthly_goal_percentage(db, user_id)
     
-    # 레벨업 진행률 (예시 데이터)
-    level_progress_percentage = 60
+    # 레벨업 진행률 계산
+    level_progress_percentage = await _calculate_level_progress(db, user_id, hero.hero_level)
     
     # 캘린더 데이터 생성
     calendar_data = await _get_calendar_data(db, user_id)
@@ -87,6 +88,9 @@ async def get_user_statistics(
     
     # 주간 활동 데이터 생성
     weekly_data = await _get_weekly_activity(db, user_id)
+    
+    # 스탯 정보 가져오기
+    stats = await _get_user_stats(db, user_id)
     
     return {
         "summary": {
@@ -100,7 +104,8 @@ async def get_user_statistics(
         },
         "calendar": calendar_data,
         "tags": tags_data,
-        "weekly": weekly_data
+        "weekly": weekly_data,
+        "stats": stats  # 스탯 정보 추가
     }
 
 @router.get("/{user_id}/period")
@@ -153,6 +158,168 @@ async def get_tag_statistics_endpoint(
     return tags_data
 
 # 도우미 함수들
+
+async def _get_user_stats(db: AsyncSession, user_id: int):
+    """사용자의 스탯 정보를 계산합니다."""
+    try:
+        # 사용자의 완료된 퀘스트 정보 가져오기
+        quest_result = await db.execute(
+            select(models.Quest).filter(
+                models.Quest.user_id == user_id,
+                models.Quest.finish == True
+            )
+        )
+        completed_quests = quest_result.scalars().all()
+        
+        # 기본 스탯 값 설정
+        stats = {
+            "strength": 10,  # 힘
+            "intelligence": 10,  # 지능
+            "vitality": 10,  # 체력
+            "dexterity": 10,  # 손재주
+            "endurance": 10,  # 인내력
+        }
+        
+        # 완료된 퀘스트의 태그에 따라 스탯 증가
+        for quest in completed_quests:
+            try:
+                if quest.tag:
+                    tags = json.loads(quest.tag) if isinstance(quest.tag, str) else quest.tag
+                    if not isinstance(tags, list):
+                        continue
+                        
+                    for tag in tags:
+                        # 태그에 따른 스탯 증가
+                        if tag == "운동 및 스포츠":
+                            stats["strength"] += 2
+                            stats["vitality"] += 2
+                        elif tag == "공부":
+                            stats["intelligence"] += 3
+                        elif tag == "자기개발":
+                            stats["intelligence"] += 2
+                            stats["dexterity"] += 1
+                        elif tag == "취미":
+                            stats["dexterity"] += 3
+                        elif tag == "명상 및 스트레칭":
+                            stats["vitality"] += 1
+                            stats["endurance"] += 2
+                        else:  # 기타
+                            # 모든 스탯에 균등하게 추가
+                            for stat in stats:
+                                stats[stat] += 0.5
+            except (json.JSONDecodeError, TypeError):
+                continue
+        
+        # 스탯이 너무 높지 않도록 최대값 설정
+        for stat in stats:
+            stats[stat] = min(round(stats[stat]), 100)
+        
+        return stats
+        
+    except Exception as e:
+        # 에러 로깅
+        print(f"Error in _get_user_stats: {e}")
+        # 기본 스탯 반환
+        return {
+            "strength": 10,
+            "intelligence": 10,
+            "vitality": 10,
+            "dexterity": 10,
+            "endurance": 10,
+        }
+    
+async def _calculate_streak_days(db: AsyncSession, user_id: int):
+    """사용자의 연속 달성 일수를 계산합니다."""
+    try:
+        now = datetime.now().date()
+        
+        # 최대 30일 전까지의 데이터 확인
+        streak = 0
+        current_date = now
+        
+        for _ in range(30):  # 최대 30일 확인
+            # 해당 날짜에 완료된 퀘스트가 있는지 확인
+            date_result = await db.execute(
+                select(models.Quest).filter(
+                    models.Quest.user_id == user_id,
+                    models.Quest.finish == True,
+                    func.date(models.Quest.finish_time) == current_date
+                )
+            )
+            completed_quests = date_result.scalars().all()
+            
+            if not completed_quests:
+                break  # 완료된 퀘스트가 없으면 스트릭 중단
+                
+            streak += 1
+            current_date -= timedelta(days=1)
+        
+        return streak
+        
+    except Exception as e:
+        print(f"Error in _calculate_streak_days: {e}")
+        return 0
+
+async def _calculate_monthly_goal_percentage(db: AsyncSession, user_id: int):
+    """사용자의 월간 목표 달성률을 계산합니다."""
+    try:
+        # 월간 목표는 예를 들어 월 100개 퀘스트 완료라고 가정
+        monthly_target = 100
+        
+        # 이번 달 시작과 끝
+        now = datetime.now()
+        start_of_month = datetime(now.year, now.month, 1)
+        
+        # 이번 달 완료한 퀘스트 수 조회
+        monthly_completed_result = await db.execute(
+            select(func.count()).select_from(models.Quest).filter(
+                models.Quest.user_id == user_id,
+                models.Quest.finish == True,
+                models.Quest.finish_time >= start_of_month
+            )
+        )
+        monthly_completed = monthly_completed_result.scalar_one() or 0
+        
+        # 달성률 계산 (최대 100%)
+        return min(int((monthly_completed / monthly_target) * 100), 100)
+        
+    except Exception as e:
+        print(f"Error in _calculate_monthly_goal_percentage: {e}")
+        return 0
+
+async def _calculate_level_progress(db: AsyncSession, user_id: int, current_level: int):
+    """레벨업 진행률을 계산합니다."""
+    try:
+        # 다음 레벨에 필요한 경험치 계산 (예: 레벨^2 * 100)
+        next_level_xp = (current_level + 1) ** 2 * 100
+        
+        # 현재 레벨 시작 경험치
+        current_level_xp = current_level ** 2 * 100
+        
+        # 필요한 경험치
+        xp_needed = next_level_xp - current_level_xp
+        
+        # 현재 경험치 (예: 완료된 퀘스트 수 * 10)
+        completed_result = await db.execute(
+            select(func.count()).select_from(models.Quest).filter(
+                models.Quest.user_id == user_id,
+                models.Quest.finish == True
+            )
+        )
+        completed_quests = completed_result.scalar_one() or 0
+        current_xp = completed_quests * 10
+        
+        # 현재 레벨 내에서의 진행 경험치
+        current_level_progress = current_xp - current_level_xp
+        
+        # 진행률 계산
+        progress_percentage = min(int((current_level_progress / xp_needed) * 100), 99)
+        
+        return progress_percentage
+        
+    except Exception as e:
+        print(f"Error in _calculate_level_progress: {e}")
+        return 0
 
 async def _get_calendar_data(db: AsyncSession, user_id: int):
     """한 달 간의 일별 활동 데이터를 생성합니다."""
@@ -220,19 +387,72 @@ async def _get_calendar_data(db: AsyncSession, user_id: int):
 
 async def _get_tag_statistics(db: AsyncSession, user_id: int):
     """사용자의 태그별 통계를 생성합니다."""
-    # 참고: 실제 구현은 데이터베이스 구조에 따라 달라질 수 있습니다
-    # 여기서는 퀘스트의 tag 필드가 JSON 문자열이라고 가정합니다
+    # 현재는 샘플 데이터를 반환하고 있습니다.
     
-    # 예시 데이터 반환
-    tags_data = [
-        {"name": "운동 및 스포츠", "count": 45, "percentage": 30},
-        {"name": "공부", "count": 38, "percentage": 25},
-        {"name": "자기개발", "count": 30, "percentage": 20},
-        {"name": "취미", "count": 23, "percentage": 15},
-        {"name": "명상 및 스트레칭", "count": 15, "percentage": 10},
-    ]
+    try:
+        # 1. 사용자의 모든 퀘스트를 조회합니다.
+        quest_result = await db.execute(
+            select(models.Quest).filter(models.Quest.user_id == user_id)
+        )
+        quests = quest_result.scalars().all()
+        
+        # 2. 태그 정보를 집계합니다.
+        tag_counts = {}
+        for quest in quests:
+            # 태그 정보가 JSON 문자열로 저장되어 있으므로 파싱합니다.
+            try:
+                if quest.tag:
+                    tags = json.loads(quest.tag) if isinstance(quest.tag, str) else quest.tag
+                    if isinstance(tags, list):
+                        for tag in tags:
+                            if tag in tag_counts:
+                                tag_counts[tag] += 1
+                            else:
+                                tag_counts[tag] = 1
+            except (json.JSONDecodeError, TypeError):
+                continue
+        
+        # 3. 총 태그 수를 계산합니다.
+        total_count = sum(tag_counts.values()) if tag_counts else 1  # 0으로 나누기 방지
+        
+        # 4. 태그별 통계 데이터를 생성합니다.
+        tags_data = [
+            {
+                "name": tag, 
+                "count": count,
+                "percentage": int((count / total_count) * 100)
+            }
+            for tag, count in tag_counts.items()
+        ]
+        
+        # 5. 많이 사용된 순서로 정렬합니다.
+        tags_data = sorted(tags_data, key=lambda x: x["count"], reverse=True)
+        
+        # 6. 데이터가 없는 경우 기본 태그 목록을 제공합니다.
+        if not tags_data:
+            tags_data = [
+                {"name": "운동 및 스포츠", "count": 0, "percentage": 0},
+                {"name": "공부", "count": 0, "percentage": 0},
+                {"name": "자기개발", "count": 0, "percentage": 0},
+                {"name": "취미", "count": 0, "percentage": 0},
+                {"name": "명상 및 스트레칭", "count": 0, "percentage": 0},
+                {"name": "기타", "count": 0, "percentage": 0},
+            ]
+        
+        return tags_data
     
-    return tags_data
+    except Exception as e:
+        # 에러 로깅
+        print(f"Error in _get_tag_statistics: {e}")
+        # 기본 태그 목록 반환
+        return [
+            {"name": "운동 및 스포츠", "count": 0, "percentage": 0},
+            {"name": "공부", "count": 0, "percentage": 0},
+            {"name": "자기개발", "count": 0, "percentage": 0},
+            {"name": "취미", "count": 0, "percentage": 0},
+            {"name": "명상 및 스트레칭", "count": 0, "percentage": 0},
+            {"name": "기타", "count": 0, "percentage": 0},
+        ]
 
 async def _get_weekly_activity(
     db: AsyncSession, 
