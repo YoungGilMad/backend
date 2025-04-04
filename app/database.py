@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
 from .config import get_settings
 
+
 settings = get_settings()
 
 SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL

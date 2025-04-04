@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime, timedelta
 
 class User(Base):
     __tablename__ = "users"
@@ -59,8 +60,8 @@ class Quest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    todo = Column(String(200))
-    memo = Column(String)
+    title = Column(String)
+    description = Column(String(200))
     tag = Column(String)  # JSON이나 CSV 등으로 저장하려면 별도 처리
     days = Column(String) # 마찬가지로 JSON 배열로 저장한다면 Column(JSON) 고려
     finish = Column(Boolean, default=False)
@@ -70,6 +71,7 @@ class Quest(Base):
     finish_time = Column(DateTime)
     progress_time = Column(Integer)  # 필요하다면
     complete_time = Column(Integer)  # 필요하다면
+    deadline = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(hours=24))
 
 class Friend(Base):
     __tablename__ = "friends"
