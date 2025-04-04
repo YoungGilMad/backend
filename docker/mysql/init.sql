@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS friends (
     UNIQUE KEY unique_friendship (user_id, friend_user_id),  -- 중복 친구 관계 방지
     INDEX idx_user_friends (user_id, created_at)
 );
-=
+
 -- Groups 테이블 생성
 -- 그룹 정보를 저장하는 테이블입니다.
 CREATE TABLE IF NOT EXISTS `groups` (
