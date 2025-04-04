@@ -97,10 +97,10 @@ CREATE TABLE IF NOT EXISTS friends (
     UNIQUE KEY unique_friendship (user_id, friend_user_id),  -- 중복 친구 관계 방지
     INDEX idx_user_friends (user_id, created_at)
 );
-
+=
 -- Groups 테이블 생성
 -- 그룹 정보를 저장하는 테이블입니다.
-CREATE TABLE IF NOT EXISTS groups (
+CREATE TABLE IF NOT EXISTS `groups` (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -117,9 +117,9 @@ CREATE TABLE IF NOT EXISTS group_members (
     group_id INT NOT NULL,
     user_id INT NOT NULL,
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_membership (group_id, user_id),  -- 중복 멤버십 방지
+    UNIQUE KEY unique_membership (group_id, user_id),
     INDEX idx_group_members (group_id, joined_at)
 );
 
