@@ -55,7 +55,7 @@ class LoginResponse(BaseModel):
         from_attributes = True
 
 # 회원가입
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse, status_code=201)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     # 이메일 중복 체크
     db_user = await auth.get_user_by_email(db, email=user.email)
