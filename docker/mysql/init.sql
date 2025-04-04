@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS receipts (
 CREATE TABLE IF NOT EXISTS quests (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
-    todo VARCHAR(200) NOT NULL,
-    memo TEXT,
+    title VARCHAR(30) NOT NULL,
+    description VERCHAR(200) NOT NULL,
     tag JSON,  -- 태그 정보를 JSON으로 저장
     days JSON,  -- 요일 정보를 JSON으로 저장
     progress_time INT DEFAULT 0,
@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS quests (
     start_time DATETIME,
     stop_time DATETIME,
     finish_time DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deadline DATETIME,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_quests (user_id, quest_type, finish)
 );
