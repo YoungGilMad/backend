@@ -2,8 +2,7 @@
 CREATE DATABASE IF NOT EXISTS behero;
 USE behero;
 
--- Users 테이블 생성
--- 기본적인 사용자 정보를 저장하는 테이블입니다.
+-- ✅ Users 테이블
 CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
@@ -13,48 +12,51 @@ CREATE TABLE IF NOT EXISTS users (
     profile_img VARCHAR(255),
     join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_email (email)  -- 로그인에 사용되므로 인덱스 추가
+    INDEX idx_email (email)
 );
 
--- Heroes 테이블 생성
--- 사용자의 게임 캐릭터 정보를 저장하는 테이블입니다.
+-- ✅ Heroes 테이블
 CREATE TABLE IF NOT EXISTS heroes (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT UNIQUE,  -- 1:1 관계를 위한 UNIQUE 제약조건
+    user_id INT UNIQUE,
+    strength INT DEFAULT 0,
+    intelligence INT DEFAULT 0,
+    stamina INT DEFAULT 0,
+    skill INT DEFAULT 0,
     hero_level INT DEFAULT 1,
     coin INT DEFAULT 0,
     avatar_id INT DEFAULT 0,
     background_id INT DEFAULT 0,
-    tag JSON,  -- MySQL 5.7 이상에서 지원하는 JSON 타입 사용
-    did_info JSON,  -- 업적 정보도 JSON으로 저장
+    tag JSON,
+    did_info JSON,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id)
+    INDEX idx_user_id (user_id),
+    INDEX idx_hero_level (hero_level)
 );
 
--- Stories 테이블 생성
--- 사용자의 스토리(일기) 정보를 저장하는 테이블입니다.
+-- ✅ Stories 테이블
 CREATE TABLE IF NOT EXISTS stories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
-    contents TEXT,  -- 긴 텍스트를 저장하기 위해 TEXT 타입 사용
-    img VARCHAR(255),  -- 이미지 URL 저장
+    contents TEXT,
+    img VARCHAR(255),
     create_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id_create_at (user_id, create_at)  -- 사용자별 시간순 조회를 위한 복합 인덱스
+    INDEX idx_user_id_create_at (user_id, create_at)
 );
 
--- Items 테이블 생성
--- 게임 내 아이템 정보를 저장하는 테이블입니다.
+-- ✅ Items 테이블
 CREATE TABLE IF NOT EXISTS items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     price INT NOT NULL,
-    item_type ENUM('avatar', 'background') NOT NULL,  -- 아이템 타입을 ENUM으로 제한
+    item_type ENUM('avatar', 'background') NOT NULL,
     INDEX idx_item_type (item_type)
 );
 
--- Receipts 테이블 생성
--- 아이템 구매 기록을 저장하는 테이블입니다.
+-- ✅ Receipts 테이블
 CREATE TABLE IF NOT EXISTS receipts (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
@@ -65,15 +67,14 @@ CREATE TABLE IF NOT EXISTS receipts (
     INDEX idx_user_purchases (user_id, purchase_date)
 );
 
--- Quests 테이블 생성
--- 사용자의 퀘스트 정보를 저장하는 테이블입니다.
+-- ✅ Quests 테이블
 CREATE TABLE IF NOT EXISTS quests (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     title VARCHAR(30) NOT NULL,
     description VARCHAR(200) NOT NULL,
-    tag JSON,  -- 태그 정보를 JSON으로 저장
-    days JSON,  -- 요일 정보를 JSON으로 저장
+    tag JSON,
+    days JSON,
     progress_time INT DEFAULT 0,
     complete_time INT DEFAULT 0,
     finish BOOLEAN DEFAULT FALSE,
@@ -84,11 +85,11 @@ CREATE TABLE IF NOT EXISTS quests (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     deadline DATETIME,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_quests (user_id, quest_type, finish)
+    INDEX idx_user_quests (user_id, quest_type, finish),
+    INDEX idx_quest_status (finish, start_time)
 );
 
--- Friends 테이블 생성
--- 사용자 간의 친구 관계를 저장하는 테이블입니다.
+-- ✅ Friends 테이블
 CREATE TABLE IF NOT EXISTS friends (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
@@ -96,24 +97,24 @@ CREATE TABLE IF NOT EXISTS friends (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (friend_user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_friendship (user_id, friend_user_id),  -- 중복 친구 관계 방지
+    UNIQUE KEY unique_friendship (user_id, friend_user_id),
     INDEX idx_user_friends (user_id, created_at)
 );
 
--- Groups 테이블 생성
--- 그룹 정보를 저장하는 테이블입니다.
+-- ✅ Groups 테이블
 CREATE TABLE IF NOT EXISTS `groups` (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     owner_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_group_name (name)
+    INDEX idx_group_name (name),
+    INDEX idx_group_creation (created_at)
 );
 
--- Group_Members 테이블 생성
--- 그룹 멤버십 정보를 저장하는 테이블입니다.
+-- ✅ Group Members 테이블
 CREATE TABLE IF NOT EXISTS group_members (
     id INT PRIMARY KEY AUTO_INCREMENT,
     group_id INT NOT NULL,
@@ -125,17 +126,65 @@ CREATE TABLE IF NOT EXISTS group_members (
     INDEX idx_group_members (group_id, joined_at)
 );
 
--- Admins 테이블 생성
--- 관리자 정보를 저장하는 테이블입니다.
+-- ✅ Admins 테이블
 CREATE TABLE IF NOT EXISTS admins (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
+    user_id INT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_admin (user_id)  -- 중복 관리자 방지
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 기본 인덱스 생성
-CREATE INDEX idx_hero_level ON heroes(hero_level);
-CREATE INDEX idx_quest_status ON quests(finish, start_time);
-CREATE INDEX idx_group_creation ON groups(created_at);
+-- ✅ Chat Rooms 테이블
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100),
+    is_group BOOLEAN DEFAULT FALSE,
+    group_id INT UNIQUE,
+    user_id INT,
+    friend_user_id INT,
+    last_message_id INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES `groups`(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (friend_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_dm (user_id, friend_user_id)
+);
+
+-- ✅ Chat Room Members 테이블
+CREATE TABLE IF NOT EXISTS chat_room_members (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    room_id INT NOT NULL,
+    user_id INT NOT NULL,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_muted BOOLEAN DEFAULT FALSE,
+    is_blocked BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (room_id) REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ✅ Messages 테이블
+CREATE TABLE IF NOT EXISTS messages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    room_id INT NOT NULL,
+    sender_id INT NOT NULL,
+    content TEXT,
+    message_type VARCHAR(20) DEFAULT 'text',
+    reply_to_id INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (room_id) REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reply_to_id) REFERENCES messages(id) ON DELETE SET NULL
+);
+
+-- ✅ Notifications 테이블
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    contents TEXT,
+    type VARCHAR(50),
+    related_id INT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
