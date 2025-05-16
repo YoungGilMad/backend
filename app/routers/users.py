@@ -44,6 +44,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        orm_mode = True
 
 # 로그인 응답 모델
 class LoginResponse(BaseModel):
@@ -125,3 +126,11 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     return UserResponse.model_validate(current_user)
+
+# 모든 유저 반환
+@router.get("/all", response_model=list[UserResponse])
+async def get_all_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.User))
+    users = result.scalars().all()
+    return [UserResponse.from_orm(user) for user in users]
+
