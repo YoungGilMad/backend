@@ -7,6 +7,7 @@ from ..database import get_db
 from .. import models, schemas
 from ..utils import auth
 from sqlalchemy import select
+from sqlalchemy import insert  # 상단에 추가
 
 router = APIRouter(
     prefix="/users",
@@ -68,8 +69,20 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     
     # 사용자 생성
     new_user = await auth.create_user(db=db, user=user)
+
+    # ✅ Hero 자동 생성
+    await db.execute(
+        insert(models.Hero).values(
+            user_id=new_user.id,
+            hero_level=1,
+            coin=0,
+            avatar_id=0,
+            background_id=0
+        )
+    )
+    await db.commit()
     
-    # UserResponse 형식에 맞게 응답 데이터 구성
+    # 응답 데이터 구성
     return UserResponse(
         id=new_user.id,
         email=new_user.email,
@@ -78,8 +91,9 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         profile_img=new_user.profile_img,
         join_date=new_user.join_date,
         update_date=new_user.update_date,
-        hero_level=1  # 신규 가입시 기본값
+        hero_level=1
     )
+
 
 # 로그인
 @router.post("/login", response_model=LoginResponse)
@@ -134,3 +148,21 @@ async def get_all_users(db: AsyncSession = Depends(get_db)):
     users = result.scalars().all()
     return [UserResponse.from_orm(user) for user in users]
 
+# 전체 사용자 랭킹 조회 (hero_level 기준 내림차순, 이름 기준 오름차순)
+@router.get("/ranking")
+async def get_user_ranking(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(models.User, models.Hero)
+        .join(models.Hero, models.User.id == models.Hero.user_id)
+        .order_by(models.Hero.hero_level.desc(), models.User.name.asc())
+    )
+    rows = result.all()
+    return [
+        {
+            "id": user.id,
+            "name": user.name,
+            "profile_img": user.profile_img,
+            "hero_level": hero.hero_level
+        }
+        for user, hero in rows
+    ]
